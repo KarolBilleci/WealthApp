@@ -11,12 +11,11 @@ st.set_page_config(page_title="WealthBuilder Public", layout="wide", page_icon="
 # Collegamento a Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# --- LOGIN (Sostituisci da qui...) ---
+# --- LOGIN ---
 if "username" not in st.session_state:
     st.title("🔐 WealthBuilder Cloud")
     st.info("Inserisci il tuo nome per accedere al tuo database privato.")
     
-    # Usiamo un form per evitare che la pagina si ricarichi a vuoto
     with st.form("login_form"):
         user_input = st.text_input("Nome Utente:")
         submit_button = st.form_submit_button("Accedi")
