@@ -53,28 +53,32 @@ nota = st.sidebar.text_input("Nota")
 
 if st.sidebar.button("CONFERMA"):
     if importo > 0:
-        # Crea la riga da aggiungere
-        nuova_riga = {
-            'User': [username],
-            'Data': [str(data_mov)],
-            'Tipo': [tipo],
-            'Categoria': [cat],
-            'Importo': [importo],
-            'Note': [nota]
-        }
-        nuovo_df = pd.DataFrame(nuova_riga)
-        
-        # Legge i dati attuali
         try:
-            vecchi_dati = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing", ttl=0)
-            df_finale = pd.concat([vecchi_dati, nuovo_df], ignore_index=True)
+            # Creiamo la riga
+            nuova_riga = pd.DataFrame([{
+                'User': username,
+                'Data': str(data_mov),
+                'Tipo': tipo,
+                'Categoria': cat,
+                'Importo': importo,
+                'Note': nota
+            }])
             
-            # TENTATIVO DI SALVATAGGIO SEMPLIFICATO
-            conn.update(spreadsheet="https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing", data=df_finale)
-            st.sidebar.success("✅ Salvato!")
+            # Leggiamo i dati esistenti
+            url = "https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing"
+            esistenti = conn.read(spreadsheet=url, ttl=0)
+            
+            # Uniamo e puliamo i dati (rimuoviamo righe vuote o colonne extra)
+            df_aggiornato = pd.concat([esistenti, nuova_riga], ignore_index=True).dropna(how='all')
+            
+            # Proviamo il salvataggio diretto
+            conn.update(spreadsheet=url, data=df_aggiornato)
+            st.sidebar.success("✅ Operazione riuscita!")
             st.rerun()
+            
         except Exception as e:
-            st.error(f"Errore di scrittura: Assicurati che il Foglio Google sia su 'Chiunque abbia il link può MODIFICARE'")
+            st.error("⚠️ Google sta bloccando l'accesso. Procediamo con l'ultimo step tecnico.")
+            st.info("Vai su Streamlit Cloud -> Settings -> Secrets e incolla le credenziali che ti darò tra un secondo.")
 
 if st.sidebar.button("🚪 Logout"):
     del st.session_state.username
