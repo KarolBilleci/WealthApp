@@ -53,7 +53,7 @@ nota = st.sidebar.text_input("Nota")
 
 if st.sidebar.button("CONFERMA"):
     if importo > 0:
-        # Crea nuova riga
+        # 1. Crea la nuova riga
         nuova_riga = pd.DataFrame([{
             'User': username,
             'Data': str(data_mov),
@@ -63,11 +63,16 @@ if st.sidebar.button("CONFERMA"):
             'Note': nota
         }])
         
-        # Carica tutto, aggiungi e salva
+        # 2. Legge i dati esistenti
         tutti_i_dati = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing")
+        
+        # 3. Unisce i dati vecchi con la nuova riga
         aggiornato = pd.concat([tutti_i_dati, nuova_riga], ignore_index=True)
+        
+        # 4. SALVATAGGIO (Metodo corretto per GSheets)
         conn.update(spreadsheet="https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing", data=aggiornato)
-        st.success("Dato salvato sul Cloud!")
+        
+        st.sidebar.success("✅ Salvato nel Cloud!")
         st.rerun()
 
 if st.sidebar.button("🚪 Logout"):
