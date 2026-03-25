@@ -54,7 +54,7 @@ nota = st.sidebar.text_input("Nota")
 if st.sidebar.button("CONFERMA"):
     if importo > 0:
         try:
-            # Creiamo la riga
+            # Crea la nuova riga
             nuova_riga = pd.DataFrame([{
                 'User': username,
                 'Data': str(data_mov),
@@ -64,21 +64,28 @@ if st.sidebar.button("CONFERMA"):
                 'Note': nota
             }])
             
-            # Leggiamo i dati esistenti
+            # Legge i dati esistenti SENZA CACHE
             url = "https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing"
-            esistenti = conn.read(spreadsheet=url, ttl=0)
+            esistenti = conn.read(spreadsheet=url, ttl="0")
             
-            # Uniamo e puliamo i dati (rimuoviamo righe vuote o colonne extra)
-            df_aggiornato = pd.concat([esistenti, nuova_riga], ignore_index=True).dropna(how='all')
+            # Unisce i dati
+            df_aggiornato = pd.concat([esistenti, nuova_riga], ignore_index=True)
             
-            # Proviamo il salvataggio diretto
+            # SALVATAGGIO: Prova il metodo diretto senza metadati
             conn.update(spreadsheet=url, data=df_aggiornato)
-            st.sidebar.success("✅ Operazione riuscita!")
+            
+            st.sidebar.success("✅ Karol, dati inviati!")
             st.rerun()
             
         except Exception as e:
-            st.error("⚠️ Google sta bloccando l'accesso. Procediamo con l'ultimo step tecnico.")
-            st.info("Vai su Streamlit Cloud -> Settings -> Secrets e incolla le credenziali che ti darò tra un secondo.")
+            # Se fallisce ancora, è colpa del 'ttl' o del formato. Proviamo il salvataggio ultra-base
+            try:
+                conn.update(spreadsheet=url, data=pd.concat([conn.read(spreadsheet=url), nuova_riga], ignore_index=True))
+                st.sidebar.success("✅ Inviato al secondo tentativo!")
+                st.rerun()
+            except:
+                st.error("🚨 Ultimo ostacolo: Google richiede le chiavi private.")
+                st.write("Se vedi questo, incolla nei Secrets di Streamlit quello che ti scrivo sotto.")
 
 if st.sidebar.button("🚪 Logout"):
     del st.session_state.username
