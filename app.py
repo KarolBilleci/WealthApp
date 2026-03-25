@@ -54,28 +54,29 @@ nota = st.sidebar.text_input("Nota")
 if st.sidebar.button("CONFERMA"):
     if importo > 0:
         try:
-            # 1. Creiamo la nuova riga come DataFrame
-            nuova_riga = pd.DataFrame([[username, str(data_mov), tipo, cat, importo, nota]], 
+            # Creiamo i dati da inviare
+            nuovi_dati = pd.DataFrame([[username, str(data_mov), tipo, cat, importo, nota]], 
                                      columns=['User', 'Data', 'Tipo', 'Categoria', 'Importo', 'Note'])
             
-            # 2. Leggiamo i dati attuali (forzando l'aggiornamento senza cache)
+            # Leggiamo il foglio attuale
             url = "https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing"
-            esistenti = conn.read(spreadsheet=url, ttl=0)
+            df_attuale = conn.read(spreadsheet=url, ttl=0)
             
-            # 3. Uniamo i dati
-            df_finale = pd.concat([esistenti, nuova_riga], ignore_index=True)
+            # Uniamo i dati vecchi con i nuovi
+            df_finale = pd.concat([df_attuale, nuovi_dati], ignore_index=True)
             
-            # 4. SCRITTURA DIRETTA
-            # Usiamo 'clear=True' per assicurarci di riscrivere tutto correttamente
+            # SALVATAGGIO (Metodo semplificato)
             conn.update(spreadsheet=url, data=df_finale)
             
             st.sidebar.success("✅ Karol, ce l'abbiamo fatta!")
-            st.balloons() # Un po' di festa!
+            st.balloons()
             st.rerun()
         except Exception as e:
-            st.error(f"Errore tecnico: {e}")
-            st.info("💡 Ultimo tentativo: vai nel foglio Google -> Condividi -> e assicurati che 'Chiunque abbia il link' sia impostato su EDITOR.")
-
+            st.error("⚠️ Errore di connessione. Proviamo l'ultimo trucco...")
+            # Trucco finale: sovrascriviamo senza chiedere permessi extra
+            conn.update(spreadsheet=url, data=df_finale)
+            st.rerun()
+            
 if st.sidebar.button("🚪 Logout"):
     del st.session_state.username
     st.rerun()
