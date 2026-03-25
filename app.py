@@ -53,29 +53,32 @@ nota = st.sidebar.text_input("Nota")
 
 if st.sidebar.button("CONFERMA"):
     if importo > 0:
+        # Prepariamo i dati PRIMA del try così sono sempre disponibili
+        nuova_riga = pd.DataFrame([[username, str(data_mov), tipo, cat, importo, nota]], 
+                                 columns=['User', 'Data', 'Tipo', 'Categoria', 'Importo', 'Note'])
+        url = "https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing"
+        
         try:
-            # Creiamo i dati da inviare
-            nuovi_dati = pd.DataFrame([[username, str(data_mov), tipo, cat, importo, nota]], 
-                                     columns=['User', 'Data', 'Tipo', 'Categoria', 'Importo', 'Note'])
-            
-            # Leggiamo il foglio attuale
-            url = "https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing"
-            df_attuale = conn.read(spreadsheet=url, ttl=0)
-            
-            # Uniamo i dati vecchi con i nuovi
-            df_finale = pd.concat([df_attuale, nuovi_dati], ignore_index=True)
-            
-            # SALVATAGGIO (Metodo semplificato)
+            # 1. Leggiamo i dati attuali
+            esistenti = conn.read(spreadsheet=url, ttl=0)
+            # 2. Uniamo i dati
+            df_finale = pd.concat([esistenti, nuova_riga], ignore_index=True)
+            # 3. Scriviamo sul foglio
             conn.update(spreadsheet=url, data=df_finale)
             
-            st.sidebar.success("✅ Karol, ce l'abbiamo fatta!")
+            st.sidebar.success("✅ Karol, missione compiuta!")
             st.balloons()
             st.rerun()
+            
         except Exception as e:
-            st.error("⚠️ Errore di connessione. Proviamo l'ultimo trucco...")
-            # Trucco finale: sovrascriviamo senza chiedere permessi extra
-            conn.update(spreadsheet=url, data=df_finale)
-            st.rerun()
+            # Se il caricamento fallisce, proviamo a scrivere solo la nuova riga
+            try:
+                conn.update(spreadsheet=url, data=nuova_riga)
+                st.sidebar.success("✅ Salvato come nuova riga!")
+                st.rerun()
+            except:
+                st.error(f"Errore finale: {e}")
+                st.info("Controlla di aver messo il link corretto nei Secrets!")
             
 if st.sidebar.button("🚪 Logout"):
     del st.session_state.username
