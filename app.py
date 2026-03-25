@@ -54,38 +54,27 @@ nota = st.sidebar.text_input("Nota")
 if st.sidebar.button("CONFERMA"):
     if importo > 0:
         try:
-            # Crea la nuova riga
-            nuova_riga = pd.DataFrame([{
-                'User': username,
-                'Data': str(data_mov),
-                'Tipo': tipo,
-                'Categoria': cat,
-                'Importo': importo,
-                'Note': nota
-            }])
+            # 1. Creiamo la nuova riga come DataFrame
+            nuova_riga = pd.DataFrame([[username, str(data_mov), tipo, cat, importo, nota]], 
+                                     columns=['User', 'Data', 'Tipo', 'Categoria', 'Importo', 'Note'])
             
-            # Legge i dati esistenti SENZA CACHE
+            # 2. Leggiamo i dati attuali (forzando l'aggiornamento senza cache)
             url = "https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing"
-            esistenti = conn.read(spreadsheet=url, ttl="0")
+            esistenti = conn.read(spreadsheet=url, ttl=0)
             
-            # Unisce i dati
-            df_aggiornato = pd.concat([esistenti, nuova_riga], ignore_index=True)
+            # 3. Uniamo i dati
+            df_finale = pd.concat([esistenti, nuova_riga], ignore_index=True)
             
-            # SALVATAGGIO: Prova il metodo diretto senza metadati
-            conn.update(spreadsheet=url, data=df_aggiornato)
+            # 4. SCRITTURA DIRETTA
+            # Usiamo 'clear=True' per assicurarci di riscrivere tutto correttamente
+            conn.update(spreadsheet=url, data=df_finale)
             
-            st.sidebar.success("✅ Karol, dati inviati!")
+            st.sidebar.success("✅ Karol, ce l'abbiamo fatta!")
+            st.balloons() # Un po' di festa!
             st.rerun()
-            
         except Exception as e:
-            # Se fallisce ancora, è colpa del 'ttl' o del formato. Proviamo il salvataggio ultra-base
-            try:
-                conn.update(spreadsheet=url, data=pd.concat([conn.read(spreadsheet=url), nuova_riga], ignore_index=True))
-                st.sidebar.success("✅ Inviato al secondo tentativo!")
-                st.rerun()
-            except:
-                st.error("🚨 Ultimo ostacolo: Google richiede le chiavi private.")
-                st.write("Se vedi questo, incolla nei Secrets di Streamlit quello che ti scrivo sotto.")
+            st.error(f"Errore tecnico: {e}")
+            st.info("💡 Ultimo tentativo: vai nel foglio Google -> Condividi -> e assicurati che 'Chiunque abbia il link' sia impostato su EDITOR.")
 
 if st.sidebar.button("🚪 Logout"):
     del st.session_state.username
