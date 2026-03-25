@@ -53,27 +53,28 @@ nota = st.sidebar.text_input("Nota")
 
 if st.sidebar.button("CONFERMA"):
     if importo > 0:
-        # 1. Crea la nuova riga
-        nuova_riga = pd.DataFrame([{
-            'User': username,
-            'Data': str(data_mov),
-            'Tipo': tipo,
-            'Categoria': cat,
-            'Importo': importo,
-            'Note': nota
-        }])
+        # Crea la riga da aggiungere
+        nuova_riga = {
+            'User': [username],
+            'Data': [str(data_mov)],
+            'Tipo': [tipo],
+            'Categoria': [cat],
+            'Importo': [importo],
+            'Note': [nota]
+        }
+        nuovo_df = pd.DataFrame(nuova_riga)
         
-        # 2. Legge i dati esistenti
-        tutti_i_dati = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing")
-        
-        # 3. Unisce i dati vecchi con la nuova riga
-        aggiornato = pd.concat([tutti_i_dati, nuova_riga], ignore_index=True)
-        
-        # 4. SALVATAGGIO (Metodo corretto per GSheets)
-        conn.update(spreadsheet="https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing", data=aggiornato)
-        
-        st.sidebar.success("✅ Salvato nel Cloud!")
-        st.rerun()
+        # Legge i dati attuali
+        try:
+            vecchi_dati = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing", ttl=0)
+            df_finale = pd.concat([vecchi_dati, nuovo_df], ignore_index=True)
+            
+            # TENTATIVO DI SALVATAGGIO SEMPLIFICATO
+            conn.update(spreadsheet="https://docs.google.com/spreadsheets/d/1gAeu_pnEO5BKQdKayaFvQcvnKXBJbfHRLBlVGuPvBw4/edit?usp=sharing", data=df_finale)
+            st.sidebar.success("✅ Salvato!")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Errore di scrittura: Assicurati che il Foglio Google sia su 'Chiunque abbia il link può MODIFICARE'")
 
 if st.sidebar.button("🚪 Logout"):
     del st.session_state.username
